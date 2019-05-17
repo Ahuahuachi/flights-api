@@ -11,6 +11,12 @@
 |
 */
 
-Route::get('/', 'PagesController@upload');
+Route::get('/', 'UploadController@return_view');
+
+Route::post('/upload_files', 'UploadController@upload_files');
 
 Route::post('/flights', 'PagesController@flights');
+
+Route::get('/php-info', function () {
+    dd(phpinfo());
+});

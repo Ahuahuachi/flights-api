@@ -22,3 +22,7 @@ Homestead.json
 # Added by Laravel
 .phpunit.result.cache
 yarn-error.log
+
+
+# vscode
+.vscode/
