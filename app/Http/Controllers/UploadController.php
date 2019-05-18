@@ -115,6 +115,7 @@ class UploadController extends Controller
             $pricing_solution_key = strval($pricing_solution_attr['Key']);
 
             $journeys_list = $pricing_solution->Journey;
+            $booking_info_list = $pricing_solution->AirPricingInfo->BookingInfo;
 
             foreach ($journeys_list as $journey_element) {
                 $travel_time = strval($journey_element->attributes()['TravelTime']);
@@ -130,9 +131,22 @@ class UploadController extends Controller
                 ];
             };
 
+            foreach ($booking_info_list as $booking_info_element) {
+                $booking_info_attr =  $booking_info_element->attributes();
+
+                $booking_info[] = [
+                    'BookingCode' => strval($booking_info_attr['BookingCode']),
+                    'CabinClass' => strval($booking_info_attr['CabinClass']),
+                    'FareInfoRef' => strval($booking_info_attr['FareInfoRef']),
+                    'SegmentRef' => strval($booking_info_attr['SegmentRef']),
+                ];
+            }
+
+
             $pricing_solutions[$pricing_solution_key] = [
                 'TotalPrice' => strval($pricing_solution_attr['TotalPrice']),
                 'Journeys' => $journey,
+                'BookingInfo' => $booking_info,
             ];
         }
 
