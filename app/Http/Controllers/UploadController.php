@@ -110,21 +110,38 @@ class UploadController extends Controller
         // Get air pricing solutions
         $pricing_solutions_list = $air_xml->AirPricingSolution;
 
-        foreach ($pricing_solutions_list as $pricing_solution_element) {
+        foreach ($pricing_solutions_list as $pricing_solution) {
+            $pricing_solution_attr = $pricing_solution->attributes();
+            $pricing_solution_key = strval($pricing_solution_attr['Key']);
 
-            $pricing_solution = [
-                'TotalPrice' => $pricing_solution_element->attributes()['TotalPrice']->__toString(),
+            $journeys_list = $pricing_solution->Journey;
+
+            foreach ($journeys_list as $journey_element) {
+                $travel_time = strval($journey_element->attributes()['TravelTime']);
+                $air_segment_refs = $journey_element->AirSegmentRef;
+
+                foreach ($air_segment_refs as $air_segment_ref) {
+                    $air_segment_keys[] = strval($air_segment_ref->attributes()['Key']);
+                }
+
+                $journey[] = [
+                    'TravelTime' => $travel_time,
+                    'AirSegmentRef' => $air_segment_keys,
+                ];
+            };
+
+            $pricing_solutions[$pricing_solution_key] = [
+                'TotalPrice' => strval($pricing_solution_attr['TotalPrice']),
+                'Journeys' => $journey,
             ];
-
-            $pricing_solutions[] = $pricing_solution;
         }
 
         // Debug
         dd([
-            "air_xml" => $air_xml,
-            "flights_details" => $flights_details,
-            'air_segments' => $air_segments,
-
+            // "air_xml" => $air_xml,
+            // "flights_details" => $flights_details,
+            // 'air_segments' => $air_segments,
+            'pricing_solutions' => $pricing_solutions
         ]);
 
         // Build response
