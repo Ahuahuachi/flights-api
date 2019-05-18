@@ -150,12 +150,50 @@ class UploadController extends Controller
             ];
         }
 
+
+        // Get air itineraries
+        $air_itineraries_list = $s_xml->AirAvailSearchResponse->AirAvailSearchResult->AirAvail->AirItineraries->AirItinerary;
+
+        foreach ($air_itineraries_list as $air_itinerary_element) {
+            $itinerary_legs_list = $air_itinerary_element->AirItineraryLegs->AirItineraryLeg;
+
+            foreach ($itinerary_legs_list as $itinerary_legs_element) {
+                $itinerary_legs[] = [
+                    'DepartureDateTime' => trim(strval($itinerary_legs_element->DepartureDateTime)),
+                    'ArrivalDateTime' => trim(strval($itinerary_legs_element->ArrivalDateTime)),
+                    'ArrivalAirportLocationCode' => trim(strval($itinerary_legs_element->ArrivalAirportLocationCode)),
+                    'ArrivalAirportTerminal' => trim(strval($itinerary_legs_element->ArrivalAirportTerminal)),
+                    'DepartureAirportLocationCode' => trim(strval($itinerary_legs_element->DepartureAirportLocationCode)),
+                    'DepartureAirportTerminal' => trim(strval($itinerary_legs_element->DepartureAirportTerminal)),
+                    'FlightNumber' => trim(strval($itinerary_legs_element->FlightNumber)),
+                    'OperatingCarrierCode' => trim(strval($itinerary_legs_element->OperatingCarrierCode)),
+                    'MarketingCarrierCode' => trim(strval($itinerary_legs_element->MarketingCarrierCode)),
+                    'AircraftType' => trim($itinerary_legs_element->AircraftType),
+                ];
+            }
+
+            $air_itineraries[] = [
+                'DepartureDateTime' => trim(strval($air_itinerary_element->DepartureDateTime)),
+                'ArrivalDateTime' => trim(strval($air_itinerary_element->ArrivalDateTime)),
+                'ArrivalAirportLocationCode' => trim(strval($air_itinerary_element->ArrivalAirportLocationCode)),
+                'DepartureAirportLocationCode' => trim(strval($air_itinerary_element->DepartureAirportLocationCode)),
+                'AirItineraryLegs' => $itinerary_legs,
+                'TotalDuration' => trim(strval($air_itinerary_element->TotalDuration)),
+            ];
+        }
+
+
+
+
         // Debug
         dd([
             // "air_xml" => $air_xml,
             // "flights_details" => $flights_details,
             // 'air_segments' => $air_segments,
-            'pricing_solutions' => $pricing_solutions
+            // 'pricing_solutions' => $pricing_solutions
+            // "s_xml" => $s_xml,
+            "air_itineraries" => $air_itineraries,
+
         ]);
 
         // Build response
