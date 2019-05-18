@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 
 class PagesController extends Controller
 {
@@ -11,12 +12,24 @@ class PagesController extends Controller
         return view('welcome');
     }
 
-    public function upload()
+    public function flights(Request $request)
     {
-        $title = "Upload XML files";
 
-        return view('upload', [
-            'title' => $title
-        ]);
+        $flights = [];
+
+        $response = [
+            "count" => count($flights),
+            "flights" => [
+                $flights
+            ]
+        ];
+
+
+
+        // $airFile = $request->file('air');
+        // $airXML = simplexml_load_file($airFile);
+
+        $response = $request->file('air');
+        return $response;
     }
 }

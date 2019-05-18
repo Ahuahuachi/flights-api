@@ -117,16 +117,16 @@ class UploadController extends Controller
             ];
         }
 
-        // Get air pricing solutions
+        // Get flights
         $pricing_solutions_list = $air_xml->AirPricingSolution;
 
         foreach ($pricing_solutions_list as $pricing_solution) {
             $pricing_solution_attr = $pricing_solution->attributes();
-            $pricing_solution_key = strval($pricing_solution_attr['Key']);
 
             $journeys_list = $pricing_solution->Journey;
             $booking_info_list = $pricing_solution->AirPricingInfo->BookingInfo;
 
+            // Get journeys
             foreach ($journeys_list as $journey_element) {
                 $travel_time = strval($journey_element->attributes()['TravelTime']);
                 $air_segment_refs = $journey_element->AirSegmentRef;
@@ -178,9 +178,11 @@ class UploadController extends Controller
         // Get air itineraries
         $air_itineraries_list = $s_xml->AirAvailSearchResponse->AirAvailSearchResult->AirAvail->AirItineraries->AirItinerary;
 
+        $air_itineraries = [];
         foreach ($air_itineraries_list as $air_itinerary_element) {
             $itinerary_legs_list = $air_itinerary_element->AirItineraryLegs->AirItineraryLeg;
 
+            $itinerary_legs = [];
             foreach ($itinerary_legs_list as $itinerary_legs_element) {
                 $itinerary_legs[] = [
                     'DepartureDateTime' => trim(strval($itinerary_legs_element->DepartureDateTime)),
@@ -313,8 +315,7 @@ class UploadController extends Controller
             'raw' => [
                 // '$flights_details' => $flights_details,
                 // '$air_segments' => $air_segments,
-                // '$pricing_solutions' => $pricing_solutions,
-                // '$air_itineraries' => $air_itineraries,
+                '$air_itineraries' => $air_itineraries,
             ],
         ];
 
