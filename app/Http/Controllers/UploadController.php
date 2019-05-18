@@ -168,7 +168,7 @@ class UploadController extends Controller
                     'FlightNumber' => trim(strval($itinerary_legs_element->FlightNumber)),
                     'OperatingCarrierCode' => trim(strval($itinerary_legs_element->OperatingCarrierCode)),
                     'MarketingCarrierCode' => trim(strval($itinerary_legs_element->MarketingCarrierCode)),
-                    'AircraftType' => trim($itinerary_legs_element->AircraftType),
+                    'AircraftType' => trim(strval($itinerary_legs_element->AircraftType)),
                 ];
             }
 
@@ -183,6 +183,79 @@ class UploadController extends Controller
         }
 
 
+        // Get air pricing groups
+        $air_pricing_groups_list = $s_xml->AirAvailSearchResponse->AirAvailSearchResult->AirAvail->AirPricingGroups->AirPricingGroup;
+
+        foreach ($air_pricing_groups_list as $air_pricing_element) {
+
+            $adult_ticket_amount = floatval($air_pricing_element->AdultTicketAmount);
+            $children_ticket_amount = floatval($air_pricing_element->ChildrenTicketAmount);
+            $infant_ticket_amount = floatval($air_pricing_element->InfantTicketAmount);
+            $adult_tax_amount = floatval($air_pricing_element->AdultTaxAmount);
+            $children_tax_amount = floatval($air_pricing_element->ChildrenTaxAmount);
+            $infant_tax_amount = floatval($air_pricing_element->InfantTaxAmount);
+            $agency_fee_amount = floatval($air_pricing_element->AgencyFeeAmount);
+            $aramix_fee_amount = floatval($air_pricing_element->AramixFeeAmount);
+            $discount_amount = floatval($air_pricing_element->DiscountAmount);
+            $total = $adult_ticket_amount
+                + $children_ticket_amount
+                + $infant_ticket_amount
+                + $adult_tax_amount
+                + $children_tax_amount
+                + $infant_tax_amount
+                + $agency_fee_amount
+                + $aramix_fee_amount
+                + $discount_amount;
+
+
+            $air_pricing_group_option_list = $air_pricing_element->AirPricingGroupOptions->AirPricingGroupOption;
+
+            // Cycle through each pricing group option
+            foreach ($air_pricing_group_option_list as $air_pricing_group_option_element) {
+
+                $air_pricing_group_option_id = trim(strval($air_pricing_group_option_element->PricingGroupOptionID));
+                $air_priced_itineraries_list = $air_pricing_group_option_element->AirPricedItineraries->AirPricedItinerary;
+
+                // Cycle through each priced itinerary
+                foreach ($air_priced_itineraries_list as $air_priced_itineraries_element) {
+                    $itinerary_id = trim(strval($air_priced_itineraries_element->ItineraryID));
+
+                    $air_priced_itinerary_legs_list = $air_priced_itineraries_element->AirPricedItineraryLegs->AirPricedItineraryLeg;
+
+                    // Cycle through each priced itinerary leg
+                    foreach ($air_priced_itinerary_legs_list as $air_priced_itinerary_legs_element) {
+                        $air_priced_itinerary_legs[] = [
+                            'CabinClass' => trim(strval($air_priced_itinerary_legs_element->CabinClass)),
+                            'CabinType' => trim(strval($air_priced_itinerary_legs_element->CabinType)),
+                        ];
+                    }
+
+                    $air_priced_itineraries[$itinerary_id] = [
+                        'AirPricedItineraryLegs' => $air_priced_itinerary_legs,
+                    ];
+                }
+
+                $air_pricing_group_options[$air_pricing_group_option_id] = [
+                    'AirPricedItineraries' => $air_priced_itineraries,
+                ];
+            }
+
+
+            $air_pricing_groups[] = [
+                'AdultTicketAmount' => $adult_ticket_amount,
+                'ChildrenTicketAmount' => $children_ticket_amount,
+                'InfantTicketAmount' => $infant_ticket_amount,
+                'AdultTaxAmount' => $adult_tax_amount,
+                'ChildrenTaxAmount' => $children_tax_amount,
+                'InfantTaxAmount' => $infant_tax_amount,
+                'AgencyFeeAmount' => $agency_fee_amount,
+                'AramixFeeAmount' => $aramix_fee_amount,
+                'DiscountAmount' => $discount_amount,
+                'Total' => $total,
+                'AirPricingGroupOptions' => $air_pricing_group_options,
+            ];
+        }
+
 
 
         // Debug
@@ -192,7 +265,8 @@ class UploadController extends Controller
             // 'air_segments' => $air_segments,
             // 'pricing_solutions' => $pricing_solutions
             // "s_xml" => $s_xml,
-            "air_itineraries" => $air_itineraries,
+            // "air_itineraries" => $air_itineraries,
+            'air_pricing_groups' => $air_pricing_groups,
 
         ]);
 
