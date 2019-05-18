@@ -74,8 +74,18 @@ class UploadController extends Controller
             $flight_details_ref = $segment->FlightDetailsRef;
 
             if ($codeshare_info) {
-                $has_codeshare_info = true;
+
                 $codeshare_attr = $codeshare_info->attributes();
+
+                if ($codeshare_attr['OperatingCarrier'] || $codeshare_attr['OperatingFlightNumber']) {
+                    $has_codeshare_info = true;
+                } else {
+                    $has_codeshare_info = false;
+                    $codeshare_attr = [
+                        'OperatingCarrier' => '',
+                        'OperatingFlightNumber' => '',
+                    ];
+                }
             } else {
                 $has_codeshare_info = false;
                 $codeshare_attr = [
@@ -120,17 +130,30 @@ class UploadController extends Controller
             foreach ($journeys_list as $journey_element) {
                 $travel_time = strval($journey_element->attributes()['TravelTime']);
                 $air_segment_refs = $journey_element->AirSegmentRef;
+                $airlines = [];
 
+                // Get the codes from the airlines that operates the segments
                 foreach ($air_segment_refs as $air_segment_ref) {
-                    $air_segment_keys[] = strval($air_segment_ref->attributes()['Key']);
+                    $air_segment_key = strval($air_segment_ref->attributes()['Key']);
+                    $airline_code = $air_segments[$air_segment_key]['Carrier'];
+
+                    $airlines[] = [
+                        'code' => $airline_code,
+                    ];
                 }
 
+                $unique_array = array_unique($airlines, SORT_REGULAR);
+
                 $journey[] = [
+                    'journey' => '/* Id del trayecto */',
+                    'airlines' => $unique_array,
+                    'departure' => [],
+
                     'TravelTime' => $travel_time,
-                    'AirSegmentRef' => $air_segment_keys,
                 ];
             };
 
+            $booking_info = [];
             foreach ($booking_info_list as $booking_info_element) {
                 $booking_info_attr =  $booking_info_element->attributes();
 
@@ -143,9 +166,10 @@ class UploadController extends Controller
             }
 
 
-            $pricing_solutions[$pricing_solution_key] = [
+            // $pricing_solutions[$pricing_solution_key] = [
+            $flight_list[] = [
+                'journeys' => $journey,
                 'TotalPrice' => strval($pricing_solution_attr['TotalPrice']),
-                'Journeys' => $journey,
                 'BookingInfo' => $booking_info,
             ];
         }
@@ -259,22 +283,39 @@ class UploadController extends Controller
 
 
         // Debug
-        dd([
-            // "air_xml" => $air_xml,
-            // "flights_details" => $flights_details,
-            // 'air_segments' => $air_segments,
-            // 'pricing_solutions' => $pricing_solutions
-            // "s_xml" => $s_xml,
-            // "air_itineraries" => $air_itineraries,
-            'air_pricing_groups' => $air_pricing_groups,
+        // dd([
+        // "air_xml" => $air_xml,
+        // 'flights_details' => $flights_details['wQe7wMkB0BKA0GeUkLAAAA=='],
+        // 'air_segments' => $air_segments['wQe7wMkB0BKAzGeUkLAAAA=='],
+        // 'pricing_solutions' => $pricing_solutions['wQe7wMkB0BKAyGeUkLAAAA=='],
+        // 'pricing_solutions' => $pricing_solutions,
+        // "s_xml" => $s_xml,
+        // "air_itineraries" => $air_itineraries,
+        // 'air_pricing_groups' => $air_pricing_groups,
 
-        ]);
+        // ]);
 
         // Build response
 
+        $payload = [
+            'count' => count($flight_list),
+            'flights' => [
+                $flight_list[0],
+                $flight_list[1],
+                $flight_list[3],
+            ],
+        ];
+
+
         $response = [
             'success' => true,
-            'payload' => [],
+            'payload' => $payload,
+            'raw' => [
+                // '$flights_details' => $flights_details,
+                // '$air_segments' => $air_segments,
+                // '$pricing_solutions' => $pricing_solutions,
+                // '$air_itineraries' => $air_itineraries,
+            ],
         ];
 
         return $response;
