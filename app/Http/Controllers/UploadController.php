@@ -37,25 +37,47 @@ class UploadController extends Controller
             return $response;
         }
 
-        // Translate xml to objects
+        // Translate xml files to xml objects
         $air_file = $request->file('air');
         $s_file = $request->file('s');
         $air_xml = simplexml_load_file($air_file, null, null, "air", true);
         $s_xml = simplexml_load_file($s_file, null, null, "s", true)->children('s', true)->Body->children('');
 
+        // Get information from xml objects
+
+        // Get flight details
+        $flight_details_list = $air_xml->FlightDetailsList->FlightDetails;
+
+        foreach ($flight_details_list as $details) {
+            $details_attr = $details->attributes();
+            $flight_details_key = strval($details_attr['Key']);
+
+            $flights_details[$flight_details_key] = [
+                'Origin' => strval($details_attr['Origin']),
+                'Destination' => strval($details_attr['Destination']),
+                'DepartureTime' => strval($details_attr['DepartureTime']),
+                'ArrivalTime' => strval($details_attr['ArrivalTime']),
+                'FlightTime' => strval($details_attr['FlightTime']),
+                'Equipment' => strval($details_attr['Equipment']),
+                'OriginTerminal' => strval($details_attr['OriginTerminal']),
+                'DestinationTerminal' => strval($details_attr['DestinationTerminal']),
+            ];
+        }
+
+
+        // Debug
+        dd([
+            "air_xml" => $air_xml,
+            "flights_details" => $flights_details,
+            'air_segments' => $air_segments,
+
+        ]);
 
         // Build response
 
         $response = [
             'success' => true,
-            'payload' => [
-                'count' => 0, // Número de opciones disponibles
-                'flights' => [ // Cada opcion de vuelo
-                    "journeys" => [ // Trayectos del vuelo
-                        "journey" => 0,
-                    ],
-                ],
-            ],
+            'payload' => [],
         ];
 
         return $response;
