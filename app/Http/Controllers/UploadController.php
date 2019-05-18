@@ -64,6 +64,60 @@ class UploadController extends Controller
             ];
         }
 
+        // Get air segment details
+        $air_segments_list = $air_xml->AirSegmentList->AirSegment;
+
+        foreach ($air_segments_list as $segment) {
+            $segment_attr = $segment->attributes();
+            $segment_key = strval($segment_attr['Key']);
+            $codeshare_info = $segment->CodeshareInfo;
+            $flight_details_ref = $segment->FlightDetailsRef;
+
+            if ($codeshare_info) {
+                $has_codeshare_info = true;
+                $codeshare_attr = $codeshare_info->attributes();
+            } else {
+                $has_codeshare_info = false;
+                $codeshare_attr = [
+                    'OperatingCarrier' => '',
+                    'OperatingFlightNumber' => '',
+                ];
+            }
+
+            $flight_details_ref_key = ($flight_details_ref) ? strval($flight_details_ref->attributes()['Key']) : '';
+
+
+
+            $air_segments[$segment_key] = [
+                'Carrier' => strval($segment_attr['Carrier']),
+                'FlightNumber' => strval($segment_attr['FlightNumber']),
+                'Origin' => strval($segment_attr['Origin']),
+                'Destination' => strval($segment_attr['Destination']),
+                'DepartureTime' => strval($segment_attr['DepartureTime']),
+                'ArrivalTime' => strval($segment_attr['ArrivalTime']),
+                'FlightTime' => strval($segment_attr['FlightTime']),
+                'Equipment' => strval($segment_attr['Equipment']),
+                'hasCodeshareInfo?' => $has_codeshare_info,
+                'CodeshareInfo' => [
+                    'OperatingCarrier' => strval($codeshare_attr['OperatingCarrier']),
+                    'OperatingFlightNumber' => strval($codeshare_attr['OperatingFlightNumber']),
+
+                ],
+                'FlightDetailsRefKey' => $flight_details_ref_key
+            ];
+        }
+
+        // Get air pricing solutions
+        $pricing_solutions_list = $air_xml->AirPricingSolution;
+
+        foreach ($pricing_solutions_list as $pricing_solution_element) {
+
+            $pricing_solution = [
+                'TotalPrice' => $pricing_solution_element->attributes()['TotalPrice']->__toString(),
+            ];
+
+            $pricing_solutions[] = $pricing_solution;
+        }
 
         // Debug
         dd([
