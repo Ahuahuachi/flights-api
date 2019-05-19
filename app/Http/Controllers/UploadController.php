@@ -132,7 +132,6 @@ class UploadController extends Controller
             // Get journeys
             $journeys = [];
             foreach ($journeys_list as $journey_element) {
-                $travel_time = strval($journey_element->attributes()['TravelTime']);
                 $air_segment_refs = $journey_element->AirSegmentRef;
                 $airlines = [];
                 $journey_air_segments = [];
@@ -150,6 +149,7 @@ class UploadController extends Controller
                     $journey_air_segments[] = $air_segments[$air_segment_key];
                 }
 
+                $unique_array = array_unique($airlines, SORT_REGULAR);
 
                 // Get departure and arrival details
                 $departure_air_segment = $journey_air_segments[0];
@@ -180,16 +180,21 @@ class UploadController extends Controller
                     'time' => $arrival_time,
                 ];
 
-                $unique_array = array_unique($airlines, SORT_REGULAR);
+                // Get journey duration
+                $travel_time = date_diff($arrival_datetime, $departure_datetime);
+                $duration = [
+                    'hours' => $travel_time->h,
+                    'minutes' => $travel_time->i,
+                ];
+
 
                 $journeys[] = [
                     'journey' => '/* Id del trayecto */',
                     'airlines' => $unique_array,
                     'departure' => $departure,
                     'arrival' => $arrival,
+                    'duration' => $duration,
 
-
-                    'TravelTime' => $travel_time,
                     'AirSegments' => $journey_air_segments,
                 ];
             };
