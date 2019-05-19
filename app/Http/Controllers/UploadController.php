@@ -113,7 +113,10 @@ class UploadController extends Controller
                     'OperatingFlightNumber' => strval($codeshare_attr['OperatingFlightNumber']),
 
                 ],
-                'FlightDetailsRefKey' => $flight_details_ref_key
+                'FlightDetails' => [
+                    'FlightDetailsRefKey' => $flight_details_ref_key,
+                    'FlightDetails' => $flights_details[$flight_details_ref_key],
+                ],
             ];
         }
 
@@ -127,29 +130,67 @@ class UploadController extends Controller
             $booking_info_list = $pricing_solution->AirPricingInfo->BookingInfo;
 
             // Get journeys
+            $journeys = [];
             foreach ($journeys_list as $journey_element) {
                 $travel_time = strval($journey_element->attributes()['TravelTime']);
                 $air_segment_refs = $journey_element->AirSegmentRef;
                 $airlines = [];
+                $journey_air_segments = [];
 
                 // Get the codes from the airlines that operates the segments
                 foreach ($air_segment_refs as $air_segment_ref) {
+
                     $air_segment_key = strval($air_segment_ref->attributes()['Key']);
                     $airline_code = $air_segments[$air_segment_key]['Carrier'];
 
                     $airlines[] = [
                         'code' => $airline_code,
                     ];
+
+                    $journey_air_segments[] = $air_segments[$air_segment_key];
                 }
+
+
+                // Get departure and arrival details
+                $departure_air_segment = $journey_air_segments[0];
+                $arrival_air_segment = end($journey_air_segments);
+                $datetime_format_str = 'Y-m-d\TH:i:s.uP';
+                $date_format_str = 'Y-m-d';
+                $time_format_str = 'H:i';
+
+                $departure_airport = $departure_air_segment['Origin'];
+                $departure_datetime = date_create_from_format($datetime_format_str, $departure_air_segment['DepartureTime']);
+                $departure_date = $departure_datetime->format($date_format_str);
+                $departure_time = $departure_datetime->format($time_format_str);
+
+                $departure = [
+                    'airport' => ['code' => $departure_airport],
+                    'date' => $departure_date,
+                    'time' => $departure_time,
+                ];
+
+                $arrival_airport = $arrival_air_segment['Destination'];
+                $arrival_datetime = date_create_from_format($datetime_format_str, $arrival_air_segment['ArrivalTime']);
+                $arrival_date = $arrival_datetime->format($date_format_str);
+                $arrival_time = $arrival_datetime->format($time_format_str);
+
+                $arrival = [
+                    'airport' => ['code' => $arrival_airport],
+                    'date' => $arrival_date,
+                    'time' => $arrival_time,
+                ];
 
                 $unique_array = array_unique($airlines, SORT_REGULAR);
 
-                $journey[] = [
+                $journeys[] = [
                     'journey' => '/* Id del trayecto */',
                     'airlines' => $unique_array,
-                    'departure' => [],
+                    'departure' => $departure,
+                    'arrival' => $arrival,
+
 
                     'TravelTime' => $travel_time,
+                    'AirSegments' => $journey_air_segments,
                 ];
             };
 
@@ -167,8 +208,9 @@ class UploadController extends Controller
 
 
             // $pricing_solutions[$pricing_solution_key] = [
-            $flight_list[] = [
-                'journeys' => $journey,
+            $flights[] = [
+                'journeys' => $journeys,
+
                 'TotalPrice' => strval($pricing_solution_attr['TotalPrice']),
                 'BookingInfo' => $booking_info,
             ];
@@ -300,12 +342,8 @@ class UploadController extends Controller
         // Build response
 
         $payload = [
-            'count' => count($flight_list),
-            'flights' => [
-                $flight_list[0],
-                $flight_list[1],
-                $flight_list[3],
-            ],
+            'count' => count($flights),
+            'flights' => $flights,
         ];
 
 
@@ -313,8 +351,8 @@ class UploadController extends Controller
             'success' => true,
             'payload' => $payload,
             'raw' => [
-                // '$flights_details' => $flights_details,
-                // '$air_segments' => $air_segments,
+                '$flights_details' => $flights_details,
+                '$air_segments' => $air_segments,
                 '$air_itineraries' => $air_itineraries,
             ],
         ];
