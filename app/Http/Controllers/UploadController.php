@@ -143,14 +143,26 @@ class UploadController extends Controller
             $journeys_list = $pricing_solution->Journey;
             $booking_info_list = $pricing_solution->AirPricingInfo->BookingInfo;
 
+            $booking_info = [];
+            foreach ($booking_info_list as $booking_info_element) {
+                $booking_info_attr =  $booking_info_element->attributes();
+
+                $booking_info[strval($booking_info_attr['SegmentRef'])] = [
+                    'BookingCode' => strval($booking_info_attr['BookingCode']),
+                    'CabinClass' => strval($booking_info_attr['CabinClass']),
+                    'FareInfoRef' => strval($booking_info_attr['FareInfoRef']),
+                ];
+            }
+
             // Get journeys
             $journeys = [];
             foreach ($journeys_list as $journey_element) {
                 $air_segment_refs = $journey_element->AirSegmentRef;
                 $airlines = [];
                 $journey_air_segments = [];
-                $departure_arrival_datetimes = [];
+                $departure_arrival_info = [];
                 $i = 0;
+                $j = 0;
 
                 // Get the codes from the airlines that operates the segments
                 foreach ($air_segment_refs as $air_segment_ref) {
@@ -169,51 +181,83 @@ class UploadController extends Controller
                     $departure_datetime = date_create_from_format($datetime_format_str, $journey_segment_flight_details['DepartureTime']);
                     $arrival_datetime = date_create_from_format($datetime_format_str, $journey_segment_flight_details['ArrivalTime']);
                     $journey_segment_duration = date_diff($arrival_datetime, $departure_datetime);
+                    $journey_segment_booking_info = $booking_info[$air_segment_key];
 
-                    if ($i % 2 == 0) {
-                        $journey_air_segments[] = [
-                            'type' => 'flight',
-                            'departure' => [
-                                'airport' => [
-                                    'code' => $journey_segment_flight_details['Origin'],
-                                    'terminal' => $journey_segment_flight_details['OriginTerminal'],
-                                ],
-                                'date' => $departure_datetime->format($date_format_str),
-                                'time' => $departure_datetime->format($time_format_str),
-                            ],
-                            'arrival' => [
-                                'airport' => [
-                                    'code' => $journey_segment_flight_details['Destination'],
-                                    'terminal' => $journey_segment_flight_details['DestinationTerminal'],
-                                ],
-                                'date' => $arrival_datetime->format($date_format_str),
-                                'time' => $arrival_datetime->format($time_format_str),
-                            ],
-                            'isNightly' => isNightly($departure_datetime),
-                            'duration' => [
-                                'hours' => $journey_segment_duration->h,
-                                'minutes' => $journey_segment_duration->i,
-                            ],
-                            'flightNumber' => $journey_air_segment['FlightNumber'],
-                            'aircraft' => $journey_air_segment['Equipment'],
-                            'airline' => [
-                                'code' => $journey_air_segment['Carrier'],
-                            ],
-                            'operatingAirline' => [
-                                'code' => $journey_air_segment['OperatingCarrier'],
-                            ],
-                            'class' => [
-                                'code' => $journey_segment_flight_details['']
-                            ]
-                        ];
-                    } else {
-                        $journey_air_segments[] = $air_segments[$air_segment_key];
+                    // Add scale segments
+                    if ($i != 0) {
+                        $journey_air_segments[] = [];
                     }
 
-                    $departure_arrival_datetimes[] = [
-                        'departure' => $departure_datetime,
-                        'arrival' => $arrival_datetime,
+                    // Build air segments
+                    $journey_air_segments[] = [
+                        'type' => 'flight',
+                        'departure' => [
+                            'airport' => [
+                                'code' => $journey_segment_flight_details['Origin'],
+                                'terminal' => $journey_segment_flight_details['OriginTerminal'],
+                            ],
+                            'date' => $departure_datetime->format($date_format_str),
+                            'time' => $departure_datetime->format($time_format_str),
+                        ],
+                        'arrival' => [
+                            'airport' => [
+                                'code' => $journey_segment_flight_details['Destination'],
+                                'terminal' => $journey_segment_flight_details['DestinationTerminal'],
+                            ],
+                            'date' => $arrival_datetime->format($date_format_str),
+                            'time' => $arrival_datetime->format($time_format_str),
+                        ],
+                        'isNightly' => isNightly($departure_datetime),
+                        'duration' => [
+                            'hours' => $journey_segment_duration->h,
+                            'minutes' => $journey_segment_duration->i,
+                        ],
+                        'flightNumber' => $journey_air_segment['FlightNumber'],
+                        'aircraft' => $journey_air_segment['Equipment'],
+                        'airline' => [
+                            'code' => $journey_air_segment['Carrier'],
+                        ],
+                        'operatingAirline' => [
+                            'code' => $journey_air_segment['OperatingCarrier'],
+                        ],
+                        'class' => [
+                            'code' => $journey_segment_booking_info['BookingCode'],
+                            'type' => $journey_segment_booking_info['CabinClass'],
+                        ]
                     ];
+
+                    // Build scale segments
+                    $departure_arrival_info[] = [
+                        'departure_datetime' => $departure_datetime,
+                        'departure_terminal' => $journey_segment_flight_details['OriginTerminal'],
+                        'arrival_datetime' => $arrival_datetime,
+                        'arrival_terminal' => $journey_segment_flight_details['DestinationTerminal'],
+                    ];
+
+                    if ($i != 0) {
+                        $scale_arrival_terminal = $departure_arrival_info[$j - 1]['arrival_terminal'];
+                        $scale_departure_terminal = $departure_arrival_info[$j]['departure_terminal'];
+                        $scale_arrival_datetime = $departure_arrival_info[$j - 1]['arrival_datetime'];
+                        $scale_departure_datetime = $departure_arrival_info[$j]['departure_datetime'];
+
+                        $change_terminal = ($scale_arrival_terminal != $scale_departure_terminal) ? true : false;
+                        $scale_duration = date_diff($scale_departure_datetime, $scale_arrival_datetime);
+
+                        $journey_air_segments[$i] = [
+                            'type' => 'scale',
+                            'changeTerminal' => $change_terminal,
+                            'isNightly' => isNightly($scale_arrival_datetime),
+                            'duration' => [
+                                'hours' => $scale_duration->h,
+                                'minutes' => $scale_duration->i,
+                            ]
+                        ];
+
+                        $i++;
+                    }
+
+                    $i++;
+                    $j++;
                 }
 
                 $unique_array = array_unique($airlines, SORT_REGULAR);
@@ -243,8 +287,8 @@ class UploadController extends Controller
                 ];
 
                 // Get journey duration
-                $journey_departure_datetime = $departure_arrival_datetimes[0]['departure'];
-                $journey_arrival_datetime = end($departure_arrival_datetimes)['arrival'];
+                $journey_departure_datetime = $departure_arrival_info[0]['departure_datetime'];
+                $journey_arrival_datetime = end($departure_arrival_info)['arrival_datetime'];
                 $travel_time = date_diff($journey_arrival_datetime, $journey_departure_datetime);
                 $journey_duration = [
                     'hours' => $travel_time->h,
@@ -259,25 +303,12 @@ class UploadController extends Controller
                     'arrival' => $arrival,
                     'duration' => $journey_duration,
                     'segments' => $journey_air_segments,
-
-                    'AirSegments' => $journey_air_segments,
                 ];
             };
 
-            $booking_info = [];
-            foreach ($booking_info_list as $booking_info_element) {
-                $booking_info_attr =  $booking_info_element->attributes();
-
-                $booking_info[] = [
-                    'BookingCode' => strval($booking_info_attr['BookingCode']),
-                    'CabinClass' => strval($booking_info_attr['CabinClass']),
-                    'FareInfoRef' => strval($booking_info_attr['FareInfoRef']),
-                    'SegmentRef' => strval($booking_info_attr['SegmentRef']),
-                ];
-            }
 
 
-            // $pricing_solutions[$pricing_solution_key] = [
+
             $flights[] = [
                 'journeys' => $journeys,
 
