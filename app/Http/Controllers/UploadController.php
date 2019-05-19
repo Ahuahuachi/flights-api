@@ -18,6 +18,18 @@ class UploadController extends Controller
     public function upload_files(Request $request)
     {
 
+        // This function evaluates nightly any given datetime object and returns true if its night time
+        function isNightly($datetime)
+        {
+            $timestamp = $datetime->getTimestamp();
+            $sunset_time = date_sunset($timestamp, SUNFUNCS_RET_TIMESTAMP);
+            $sunrise_time = date_sunrise($timestamp, SUNFUNCS_RET_TIMESTAMP);
+
+            $result = (($timestamp < $sunrise_time) || ($timestamp >= $sunset_time)) ? true : false;
+
+            return $result;
+        }
+
         // Get errors, if any, from loading files
         $err = [
             "air_err_code" => $request->file('air')->getError(),
@@ -156,7 +168,7 @@ class UploadController extends Controller
                     $departure_airport = $journey_segment_flight_details['Origin'];
                     $departure_datetime = date_create_from_format($datetime_format_str, $journey_segment_flight_details['DepartureTime']);
                     $arrival_datetime = date_create_from_format($datetime_format_str, $journey_segment_flight_details['ArrivalTime']);
-
+                    $journey_segment_duration = date_diff($arrival_datetime, $departure_datetime);
 
                     if ($i % 2 == 0) {
                         $journey_air_segments[] = [
@@ -177,6 +189,11 @@ class UploadController extends Controller
                                 'date' => $arrival_datetime->format($date_format_str),
                                 'time' => $arrival_datetime->format($time_format_str),
                             ],
+                            'isNightly' => isNightly($departure_datetime),
+                            'duration' => [
+                                'hours' => $journey_segment_duration->h,
+                                'minutes' => $journey_segment_duration->m,
+                            ]
                         ];
                     } else {
                         $journey_air_segments[] = $air_segments[$air_segment_key];
