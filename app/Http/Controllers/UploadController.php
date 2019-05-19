@@ -119,12 +119,12 @@ class UploadController extends Controller
                 'ArrivalTime' => strval($segment_attr['ArrivalTime']),
                 'FlightTime' => strval($segment_attr['FlightTime']),
                 'Equipment' => strval($segment_attr['Equipment']),
-                'hasCodeshareInfo?' => $has_codeshare_info,
-                'CodeshareInfo' => [
-                    'OperatingCarrier' => strval($codeshare_attr['OperatingCarrier']),
-                    'OperatingFlightNumber' => strval($codeshare_attr['OperatingFlightNumber']),
+                // 'hasCodeshareInfo?' => $has_codeshare_info,
+                // 'CodeshareInfo' => [
+                'OperatingCarrier' => strval($codeshare_attr['OperatingCarrier']),
+                'OperatingFlightNumber' => strval($codeshare_attr['OperatingFlightNumber']),
 
-                ],
+                // ],
                 'FlightDetails' => $flights_details[$flight_details_ref_key],
             ];
         }
@@ -194,7 +194,17 @@ class UploadController extends Controller
                                 'hours' => $journey_segment_duration->h,
                                 'minutes' => $journey_segment_duration->i,
                             ],
-
+                            'flightNumber' => $journey_air_segment['FlightNumber'],
+                            'aircraft' => $journey_air_segment['Equipment'],
+                            'airline' => [
+                                'code' => $journey_air_segment['Carrier'],
+                            ],
+                            'operatingAirline' => [
+                                'code' => $journey_air_segment['OperatingCarrier'],
+                            ],
+                            'class' => [
+                                'code' => $journey_segment_flight_details['']
+                            ]
                         ];
                     } else {
                         $journey_air_segments[] = $air_segments[$air_segment_key];
