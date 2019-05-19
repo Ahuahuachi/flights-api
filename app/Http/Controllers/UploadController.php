@@ -113,12 +113,14 @@ class UploadController extends Controller
                     'OperatingFlightNumber' => strval($codeshare_attr['OperatingFlightNumber']),
 
                 ],
-                'FlightDetails' => [
-                    'FlightDetailsRefKey' => $flight_details_ref_key,
-                    'FlightDetails' => $flights_details[$flight_details_ref_key],
-                ],
+                'FlightDetails' => $flights_details[$flight_details_ref_key],
             ];
         }
+
+        // Date & time formats
+        $datetime_format_str = 'Y-m-d\TH:i:s.uP';
+        $date_format_str = 'Y-m-d';
+        $time_format_str = 'H:i';
 
         // Get flights
         $pricing_solutions_list = $air_xml->AirPricingSolution;
@@ -135,6 +137,8 @@ class UploadController extends Controller
                 $air_segment_refs = $journey_element->AirSegmentRef;
                 $airlines = [];
                 $journey_air_segments = [];
+                $departure_arrival_datetimes = [];
+                $i = 0;
 
                 // Get the codes from the airlines that operates the segments
                 foreach ($air_segment_refs as $air_segment_ref) {
@@ -146,22 +150,53 @@ class UploadController extends Controller
                         'code' => $airline_code,
                     ];
 
-                    $journey_air_segments[] = $air_segments[$air_segment_key];
+                    // Build journey segments with flights and scales
+                    $journey_air_segment = $air_segments[$air_segment_key];
+                    $journey_segment_flight_details = $journey_air_segment['FlightDetails'];
+                    $departure_airport = $journey_segment_flight_details['Origin'];
+                    $departure_datetime = date_create_from_format($datetime_format_str, $journey_segment_flight_details['DepartureTime']);
+                    $arrival_datetime = date_create_from_format($datetime_format_str, $journey_segment_flight_details['ArrivalTime']);
+
+
+                    if ($i % 2 == 0) {
+                        $journey_air_segments[] = [
+                            'type' => 'flight',
+                            'departure' => [
+                                'airport' => [
+                                    'code' => $journey_segment_flight_details['Origin'],
+                                    'terminal' => $journey_segment_flight_details['OriginTerminal'],
+                                ],
+                                'date' => $departure_datetime->format($date_format_str),
+                                'time' => $departure_datetime->format($time_format_str),
+                            ],
+                            'arrival' => [
+                                'airport' => [
+                                    'code' => $journey_segment_flight_details['Destination'],
+                                    'terminal' => $journey_segment_flight_details['DestinationTerminal'],
+                                ],
+                                'date' => $arrival_datetime->format($date_format_str),
+                                'time' => $arrival_datetime->format($time_format_str),
+                            ],
+                        ];
+                    } else {
+                        $journey_air_segments[] = $air_segments[$air_segment_key];
+                    }
+
+                    $departure_arrival_datetimes[] = [
+                        'departure' => $departure_datetime,
+                        'arrival' => $arrival_datetime,
+                    ];
                 }
 
                 $unique_array = array_unique($airlines, SORT_REGULAR);
 
                 // Get departure and arrival details
-                $departure_air_segment = $journey_air_segments[0];
-                $arrival_air_segment = end($journey_air_segments);
-                $datetime_format_str = 'Y-m-d\TH:i:s.uP';
-                $date_format_str = 'Y-m-d';
-                $time_format_str = 'H:i';
+                $departure_air_segment = $journey_air_segments[0]['departure'];
+                $arrival_air_segment = end($journey_air_segments)['arrival'];
 
-                $departure_airport = $departure_air_segment['Origin'];
-                $departure_datetime = date_create_from_format($datetime_format_str, $departure_air_segment['DepartureTime']);
-                $departure_date = $departure_datetime->format($date_format_str);
-                $departure_time = $departure_datetime->format($time_format_str);
+                $departure_airport = $departure_air_segment['airport']['code'];
+                $departure_date = $departure_air_segment['date'];
+                $departure_time = $departure_air_segment['time'];
 
                 $departure = [
                     'airport' => ['code' => $departure_airport],
@@ -169,10 +204,9 @@ class UploadController extends Controller
                     'time' => $departure_time,
                 ];
 
-                $arrival_airport = $arrival_air_segment['Destination'];
-                $arrival_datetime = date_create_from_format($datetime_format_str, $arrival_air_segment['ArrivalTime']);
-                $arrival_date = $arrival_datetime->format($date_format_str);
-                $arrival_time = $arrival_datetime->format($time_format_str);
+                $arrival_airport = $arrival_air_segment['airport']['code'];
+                $arrival_date = $arrival_air_segment['date'];
+                $arrival_time = $arrival_air_segment['time'];
 
                 $arrival = [
                     'airport' => ['code' => $arrival_airport],
@@ -181,8 +215,10 @@ class UploadController extends Controller
                 ];
 
                 // Get journey duration
-                $travel_time = date_diff($arrival_datetime, $departure_datetime);
-                $duration = [
+                $journey_departure_datetime = $departure_arrival_datetimes[0]['departure'];
+                $journey_arrival_datetime = end($departure_arrival_datetimes)['arrival'];
+                $travel_time = date_diff($journey_arrival_datetime, $journey_departure_datetime);
+                $journey_duration = [
                     'hours' => $travel_time->h,
                     'minutes' => $travel_time->i,
                 ];
@@ -193,7 +229,8 @@ class UploadController extends Controller
                     'airlines' => $unique_array,
                     'departure' => $departure,
                     'arrival' => $arrival,
-                    'duration' => $duration,
+                    'duration' => $journey_duration,
+                    'segments' => $journey_air_segments,
 
                     'AirSegments' => $journey_air_segments,
                 ];
