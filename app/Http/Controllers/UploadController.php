@@ -192,8 +192,9 @@ class UploadController extends Controller
                             'isNightly' => isNightly($departure_datetime),
                             'duration' => [
                                 'hours' => $journey_segment_duration->h,
-                                'minutes' => $journey_segment_duration->m,
-                            ]
+                                'minutes' => $journey_segment_duration->i,
+                            ],
+
                         ];
                     } else {
                         $journey_air_segments[] = $air_segments[$air_segment_key];
