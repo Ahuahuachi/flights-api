@@ -45,14 +45,9 @@ class UploadController extends Controller
         $air_xml = simplexml_load_file($air_file, null, null, "air", true);
         $s_xml = simplexml_load_file($s_file, null, null, "s", true)->children('s', true)->Body->children('');
 
-        // $response = [
-        //     'success' => true,
-        //     'payload' => FlightOptions::getFlightOptionsSoap($s_xml)
-        // ];
-
         $response = [
             'success' => true,
-            'payload' => FlightOptions::getFlightOptionsAir($air_xml),
+            'payload' => FlightOptions::getFlightOptionsSoap($s_xml),
         ];
 
         return $response;

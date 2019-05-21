@@ -2,7 +2,6 @@
 
 namespace App\Classes;
 
-use function App\Http\Controllers\isNightly;
 
 class FlightOptions
 {
@@ -312,63 +311,80 @@ class FlightOptions
     public static function getFlightOptionsSoap(\SimpleXMLElement $soapXml)
     {
         // Get list of pricing groups, itineraries from xml
-        $pricingGroupList = $soapXml->AirAvailSearchResponse->AirAvailSearchResult->AirAvail->AirPricingGroups->AirPricingGroup;
-        $itinerariesList = $soapXml->AirAvailSearchResponse->AirAvailSearchResult->AirAvail->AirItineraries->AirItinerary;
+        $airItineraryList = $soapXml->AirAvailSearchResponse->AirAvailSearchResult->AirAvail->AirItineraries->AirItinerary;
 
-        // Build a relational array of itineraries data
-        foreach ($itinerariesList as $itinerary) {
-            $Id = trim(strval($itinerary->ItineraryID));
-            $departureDateTime = trim(strval($itinerary->DepartureDateTime));
-            $ArrivalDateTime = trim(strval($itinerary->ArrivalDateTime));
-            $ArrivalAirportLocationCode = trim(strval($itinerary->ArrivalAirportLocationCode));
-            $DepartureAirportLocationCode = trim(strval($itinerary->DepartureAirportLocationCode));
-            $TotalDuration = trim(strval($itinerary->TotalDuration));
+        // DateTime format strings
+        $sourceDateTimeFormat = 'd/m/Y H:i';
 
-            $itineraries[$Id] = [
-                'id' => $Id,
-                'DepartureDateTime' => $departureDateTime,
-                'ArrivalDateTime' => $ArrivalDateTime,
-                'ArrivalAirportLocationCode' => $ArrivalAirportLocationCode,
-                'DepartureAirportLocationCode' => $DepartureAirportLocationCode,
-                'TotalDuration' => $TotalDuration,
-            ];
-        }
+        // Build array of itineraries
+        foreach ($airItineraryList as $airItineraryElement) {
+            $itineraryDepartureDateTimeString = trim(strval($airItineraryElement->DepartureDateTime));
+            $itineraryDepartureDateTime = \DateTime::CreateFromFormat($sourceDateTimeFormat, $itineraryDepartureDateTimeString);
+            $itineraryArrivalDateTimeString = trim(strval($airItineraryElement->ArrivalDateTime));
+            $itineraryArrivalDateTime = \DateTime::CreateFromFormat($sourceDateTimeFormat, $itineraryArrivalDateTimeString);
+            $itineraryArrivalAirportLocationCode = trim(strval($airItineraryElement->ArrivalAirportLocationCode));
+            $itineraryDepartureAirportLocationCode = trim(strval($airItineraryElement->DepartureAirportLocationCode));
+            $itineraryTotalDuration = trim(strval($airItineraryElement->TotalDuration));
 
+            // Get itinerary legs list
+            $itineraryLegsList = $airItineraryElement->AirItineraryLegs->AirItineraryLeg;
 
-        // Get pricing groups
-        foreach ($pricingGroupList as $pricingGroup) {
+            // Build array of itinerary legs
+            $itineraryLegs = [];
+            foreach ($itineraryLegsList as $itineraryLegElement) {
+                $legDepartureDateTimeString = trim(strVal($itineraryLegElement->DepartureDateTime));
+                $legDepartureDateTime = \DateTime::CreateFromFormat($sourceDateTimeFormat, $legDepartureDateTimeString);
+                $legArrivalDateTimeString = trim(strVal($itineraryLegElement->ArrivalDateTime));
+                $legArrivalDateTime = \DateTime::CreateFromFormat($sourceDateTimeFormat, $legArrivalDateTimeString);
+                $legArrivalAirportLocationCode = trim($itineraryLegElement->ArrivalAirportLocationCode);
+                $legArrivalAirportTerminal = trim($itineraryLegElement->ArrivalAirportTerminal);
+                $legDepartureAirportLocationCode = trim($itineraryLegElement->DepartureAirportLocationCode);
+                $legDepartureAirportTerminal = trim($itineraryLegElement->DepartureAirportTerminal);
+                $legFlightNumber = trim($itineraryLegElement->FlightNumber);
+                $legOperatingCarrierCode = trim($itineraryLegElement->OperatingCarrierCode);
+                $legMarketingCarrierCode = trim($itineraryLegElement->MarketingCarrierCode);
+                $legAircraftType = trim($itineraryLegElement->AircraftType);
 
-            // Get pricing options
-            $pricingOptionList = $pricingGroup->AirPricingGroupOptions->AirPricingGroupOption;
-            $journeys = [];
-            foreach ($pricingOptionList as $pricingOption) {
-                $itineraryId = trim(strval($pricingOption->AirPricedItineraries->AirPricedItinerary->ItineraryID));
-
-                // Get cabin class and cabin type
-                $itineraryLeg = trim(strval($pricingOption->AirPricedItineraries->AirPricedItinerary->AirPricedItineraryLegs->AirPricedItineraryLeg));
-                $cabinClass = trim(strval($itineraryLeg->CabinClass));
-                $cabinType = trim(strval($itineraryLeg->CabinType));
-
-                // Build journeys
-                $journeys[] = [
-                    'jo u  rney' => '/*Id del trayecto */',
-
-                    $itineraries[$itineraryId]
+                $itineraryLegs[] = [
+                    'DepartureDateTime' => $legDepartureDateTime,
+                    'ArrivalDateTime' => $legArrivalDateTime,
+                    'ArrivalAirportLocationCode' => $legArrivalAirportLocationCode,
+                    'ArrivalAirportTerminal' => $legArrivalAirportTerminal,
+                    'DepartureAirportLocationCode' => $legDepartureAirportLocationCode,
+                    'DepartureAirportTerminal' => $legDepartureAirportTerminal,
+                    'FlightNumber' => $legFlightNumber,
+                    'OperatingCarrierCode' => $legOperatingCarrierCode,
+                    'MarketingCarrierCode' => $legMarketingCarrierCode,
+                    'AircraftType' => $legAircraftType,
                 ];
             }
 
 
-            // Get price data
-            $adultTicketAmount = floatval($pricingGroup->AdultTicketAmount);
-            $childrenTicketAmount = floatval($pricingGroup->ChildrenTicketAmount);
-            $infantTicketAmount = floatval($pricingGroup->InfantTicketAmount);
-            $adultTaxAmount = floatval($pricingGroup->AdultTaxAmount);
-            $childrenTaxAmount = floatval($pricingGroup->ChildrenTaxAmount);
-            $infantTaxAmount = floatval($pricingGroup->InfantTaxAmount);
-            $agencyFeeAmount = floatval($pricingGroup->AgencyFeeAmount);
-            $aramixFeeAmount = floatval($pricingGroup->AramixFeeAmount);
-            $discountAmount = floatval($pricingGroup->DiscountAmount);
-            $totalAmount = $adultTicketAmount
+            $airItineraries[] = [
+                'DepartureDateTime' => $itineraryDepartureDateTime,
+                'ArrivalDateTime' => $itineraryArrivalDateTime,
+                'ArrivalAirportLocationCode' => $itineraryArrivalAirportLocationCode,
+                'DepartureAirportLocationCode' => $itineraryDepartureAirportLocationCode,
+                'TotalDuration' => $itineraryTotalDuration,
+                'AirItineraryLegs' => $itineraryLegs,
+            ];
+        }
+
+        // Get pricing group list
+        $airPricingGroupList = $soapXml->AirAvailSearchResponse->AirAvailSearchResult->AirAvail->AirPricingGroups->AirPricingGroup;
+
+        // Build array of pricing groups
+        foreach ($airPricingGroupList as $airPricingGroupElement) {
+            $adultTicketAmount = floatval($airPricingGroupElement->AdultTicketAmount);
+            $childrenTicketAmount = floatval($airPricingGroupElement->ChildrenTicketAmount);
+            $infantTicketAmount = floatval($airPricingGroupElement->InfantTicketAmount);
+            $adultTaxAmount = floatval($airPricingGroupElement->AdultTaxAmount);
+            $childrenTaxAmount = floatval($airPricingGroupElement->ChildrenTaxAmount);
+            $infantTaxAmount = floatval($airPricingGroupElement->InfantTaxAmount);
+            $agencyFeeAmount = floatval($airPricingGroupElement->AgencyFeeAmount);
+            $aramixFeeAmount = floatval($airPricingGroupElement->AramixFeeAmount);
+            $discountAmount = floatval($airPricingGroupElement->DiscountAmount);
+            $totalPrice = $adultTicketAmount
                 + $childrenTicketAmount
                 + $infantTicketAmount
                 + $adultTaxAmount
@@ -377,33 +393,59 @@ class FlightOptions
                 + $agencyFeeAmount
                 + $aramixFeeAmount
                 + $discountAmount;
-            $currency = 'USD';
 
+            // Get list of air pricing group options
+            $pricingGroupOptionList = $airPricingGroupElement->AirPricingGroupOptions->AirPricingGroupOption;
 
+            // Build array of pricing group options
+            $pricingGroupOptions = [];
+            foreach ($pricingGroupOptionList as $pricingGroupOptionElement) {
 
+                // Get list of air priced itineraries
+                $pricedItineryList = $pricingGroupOptionElement->AirPricedItineraries->AirPricedItinerary;
 
-            // Build flights
-            $flights[] = [
-                'journeys' => $journeys,
-                'option' => [
-                    'price' => [
-                        'amount' => $totalAmount,
-                        'currency' => $currency,
-                    ],
-                ],
+                // Build array of air priced itineraries
+                $pricedItineraries = [];
+                foreach ($pricedItineryList as $pricedItineraryElement) {
+                    $pricedItineraryID = trim(strval($pricedItineraryElement->ItineraryID));
+
+                    // Get list of air priced itinerary legs
+                    $pricedItineraryLegsList = $pricedItineraryElement->AirPricedItineraryLegs->AirPricedItineraryLeg;
+
+                    // Build array of air priced itinerary legs
+                    $pricedItineraryLegs = [];
+                    foreach ($pricedItineraryLegsList as $pricedItineraryLegElement) {
+                        $cabinClass = trim(strval($pricedItineraryLegElement->CabinClass));
+                        $cabinType = trim(strval($pricedItineraryLegElement->CabinType));
+
+                        $pricedItineraryLegs = [
+                            'CabinClass' => $cabinClass,
+                            'CabinType' => $cabinType,
+                        ];
+                    }
+
+                    $pricedItineraries[$pricedItineraryID] = [
+                        'PricedItineraryLegs' => $pricedItineraryLegs,
+                    ];
+                }
+
+                $pricingGroupOptions[] = [
+                    'PricedItineraries' => $pricedItineraries,
+                ];
+            }
+
+            $airPricingGroups[] = [
+                'TotalPrice' => $totalPrice,
+                'PricingGroupOptions' => $pricingGroupOptions,
             ];
         }
 
-
         $response = [
-            "count" => count($flights),
-            "flights" => $flights,
-            "raw data" => [
-                'pricingGroups' => $pricingGroupList,
-                'itineraries' => $itinerariesList,
+            'RawData' => [
+                'AirItineraries' => $airItineraries,
+                'AirPricingGroups' => $airPricingGroups,
             ]
         ];
-
 
         return $response;
     }
