@@ -25,10 +25,6 @@ class PagesController extends Controller
         ];
 
 
-
-        // $airFile = $request->file('air');
-        // $airXML = simplexml_load_file($airFile);
-
         $response = $request->file('air');
         return $response;
     }
