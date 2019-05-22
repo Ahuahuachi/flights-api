@@ -413,6 +413,10 @@ class FlightOptions
                 ];
             }
 
+            $scaleCount = count(array_filter($itineraryLegs, function ($arrayElement) {
+                return ($arrayElement['type'] == 'scale');
+            }));
+
             $airItineraries[] = [
                 'journey' => '/*Id del trayecto */',
                 'airlines' => array_unique($itineraryAirlines, SORT_REGULAR),
@@ -435,6 +439,7 @@ class FlightOptions
                     'minutes' => intval($itineraryTotalDuration->format('i')),
                 ],
                 'segments' => $itineraryLegs,
+                'scale' => $scaleCount,
             ];
         }
 
