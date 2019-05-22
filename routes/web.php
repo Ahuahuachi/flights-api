@@ -1,4 +1,5 @@
 <?php
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -11,9 +12,11 @@
 |
 */
 
-Route::get('/', 'UploadController@return_view');
+Route::get('/', 'PagesController@home');
 
-Route::post('/upload_files', 'UploadController@upload_files');
+Route::get('/upload-file/{file_type}', 'UploadController@upload_file');
+
+Route::post('/file_upload/{file_type}', 'UploadController@upload_files');
 
 Route::post('/flights', 'PagesController@flights');
 

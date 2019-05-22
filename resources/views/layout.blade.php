@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
     <meta charset="UTF-8">
@@ -23,7 +23,7 @@
         }
 
         .full-height {
-            height: 90vh;
+            height: 100vh;
         }
 
         .flex-center {
@@ -63,6 +63,14 @@
         .m-b-md {
             margin-bottom: 30px;
         }
+
+        .footer {
+            margin-top: 30px;
+        }
+
+        .nav {
+            padding-top: 50px;
+        }
     </style>
 
     <!-- Font Awesome -->
@@ -70,24 +78,28 @@
 </head>
 
 <body>
-    {{-- <nav>Navigation placeholder</div> --}}
+    <nav class="nav links flex-center">
+        <a href="/upload-file/Air">Upload Air file</a>
+        <a href="/upload-file/Soap">Upload SOAP file</a>
+    </nav>
 
-    @yield('content')
+    <div class="flex-center position-ref full-height">
+        <div class="content">
+            @yield('content')
 
-    <footer class="content">
-        <div>
-            powered by <i class="fab fa-laravel"></i> Laravel
+            <div class="footer">
+                <p>made with <i class="fa fa-heart"></i> by Alfredo Altamirano</p>
+                <div class="links">
+                    <a href="https://www.github.com/ahuahuachi" target="_blank"><i class="fab fa-github fa-2x"></i></a>
+                    <a href="https://www.facebook.com/ahuahuachi" target="_blank"><i class="fab fa-facebook fa-2x"></i></a>
+                    <a href="https://www.twitter.com/FabulosoFredy" target="_blank"><i class="fab fa-twitter fa-2x"></i></a>
+                    <a href="https://www.linkedin.com/in/alfredo-altamirano-tena" target="_blank"><i class="fab fa-linkedin fa-2x"></i></a>
+                </div>
+                <p>powered by <i class="fab fa-laravel"></i> Laravel</p>
+            </div>
         </div>
-        <div>
-            made with <i class="fa fa-heart"></i> by Alfredo Altamirano
-        </div>
-        <div>
-            <a href="https://www.github.com/ahuahuachi" target="_blank"><i class="fab fa-github"></i></a>
-            <a href="https://www.facebook.com/ahuahuachi" target="_blank"><i class="fab fa-facebook"></i></a>
-            <a href="https://www.twitter.com/FabulosoFredy" target="_blank"><i class="fab fa-twitter"></i></a>
-            <a href="https://www.linkedin.com/in/alfredo-altamirano-tena" target="_blank"><i class="fab fa-linkedin"></i></a>
-        </div>
-    </footer>
+    </div>
+
 </body>
 
 </html>
