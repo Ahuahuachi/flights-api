@@ -320,6 +320,7 @@ class FlightOptions
 
         // Build array of itineraries
         foreach ($airItineraryList as $airItineraryElement) {
+            $itineraryId = trim(strval($airItineraryElement->ItineraryID));
             $itineraryDepartureDateTimeString = trim(strval($airItineraryElement->DepartureDateTime));
             $itineraryDepartureDateTime = \DateTime::CreateFromFormat($sourceDateTimeFormat, $itineraryDepartureDateTimeString);
             $itineraryArrivalDateTimeString = trim(strval($airItineraryElement->ArrivalDateTime));
@@ -375,7 +376,7 @@ class FlightOptions
                 $legArrivalIsNightly = self::isNightly($legArrivalDateTime);
                 $legPreviousArrivalDateTime = $legArrivalDateTime;
 
-                $itineraryLegs[] = [
+                $itineraryLegs[$itineraryId] = [
                     'type' => 'flight',
                     'departure' => [
                         'airport' => [
