@@ -320,6 +320,7 @@ class FlightOptions
 
         // Build array of itineraries
         foreach ($airItineraryList as $airItineraryElement) {
+            $itineraryId = trim(strval($airItineraryElement->ItineraryID));
             $itineraryDepartureDateTimeString = trim(strval($airItineraryElement->DepartureDateTime));
             $itineraryDepartureDateTime = \DateTime::CreateFromFormat($sourceDateTimeFormat, $itineraryDepartureDateTimeString);
             $itineraryArrivalDateTimeString = trim(strval($airItineraryElement->ArrivalDateTime));
@@ -417,7 +418,7 @@ class FlightOptions
                 return ($arrayElement['type'] == 'scale');
             }));
 
-            $airItineraries[] = [
+            $airItineraries[$itineraryId] = [
                 'journey' => '/*Id del trayecto */',
                 'airlines' => array_unique($itineraryAirlines, SORT_REGULAR),
                 'departure' => [
