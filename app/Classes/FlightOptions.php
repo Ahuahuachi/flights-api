@@ -334,6 +334,9 @@ class FlightOptions
             // Build array of itinerary legs
             $itineraryLegs = [];
             $itineraryAirlines = [];
+            $legArrivalIsNightly = '';
+            $scaleDuration = new \DateTime();
+            $legPreviousArrivalDateTime = new \DateTime();
             foreach ($itineraryLegsList as $itineraryLegElement) {
                 $legDepartureDateTimeString = trim(strVal($itineraryLegElement->DepartureDateTime));
                 $legDepartureDateTime = \DateTime::CreateFromFormat($sourceDateTimeFormat, $legDepartureDateTimeString);
@@ -353,16 +356,60 @@ class FlightOptions
                     'code' => $legOperatingCarrierCode,
                 ];
 
+                // Add scale segment
+                if (array_key_exists(0, $itineraryLegs)) {
+                    $changeTerminal = (end($itineraryLegs)['arrival']['airport']['terminal'] != $legDepartureAirportTerminal) ? true : false;
+                    $scaleDuration = $legPreviousArrivalDateTime->diff($legDepartureDateTime);
+
+                    $itineraryLegs[] = [
+                        'type' => 'scale',
+                        'changeTerminal' => $changeTerminal,
+                        'isNightly' => $legArrivalIsNightly,
+                        'duration' => [
+                            'hours' => $scaleDuration->h,
+                            'minutes' => $scaleDuration->i,
+                        ],
+                    ];
+                }
+
+                $legArrivalIsNightly = self::isNightly($legArrivalDateTime);
+                $legPreviousArrivalDateTime = $legArrivalDateTime;
+
                 $itineraryLegs[] = [
-                    'DepartureDateTime' => $legDepartureDateTime,
-                    'ArrivalDateTime' => $legArrivalDateTime,
-                    'ArrivalAirportLocationCode' => $legArrivalAirportLocationCode,
-                    'ArrivalAirportTerminal' => $legArrivalAirportTerminal,
-                    'DepartureAirportLocationCode' => $legDepartureAirportLocationCode,
-                    'DepartureAirportTerminal' => $legDepartureAirportTerminal,
-                    'FlightNumber' => $legFlightNumber,
-                    'MarketingCarrierCode' => $legMarketingCarrierCode,
-                    'AircraftType' => $legAircraftType,
+                    'type' => 'flight',
+                    'departure' => [
+                        'airport' => [
+                            'code' => $legDepartureAirportLocationCode,
+                            'terminal' => $legDepartureAirportTerminal,
+                        ],
+                        'date' => $legDepartureDateTime->format($outputDateFormat),
+                        'time' => $legDepartureDateTime->format($outputTimeFormat),
+                    ],
+                    'arrival' => [
+                        'airport' => [
+                            'code' => $legArrivalAirportLocationCode,
+                            'terminal' => $legArrivalAirportTerminal,
+                        ],
+                        'date' => $legArrivalDateTime->format($outputDateFormat),
+                        'time' => $legArrivalDateTime->format($outputTimeFormat),
+                    ],
+                    'isNightly' => self::isNightly($legDepartureDateTime),
+                    'duration' => [
+                        'hours' => intval($legArrivalDateTime->diff($legDepartureDateTime)->h),
+                        'minutes' => intval($legArrivalDateTime->diff($legDepartureDateTime)->i),
+                    ],
+                    'flightNumber' => $legFlightNumber,
+                    'aircraft' => $legAircraftType,
+                    'airline' => [
+                        'code' => $legMarketingCarrierCode,
+                    ],
+                    'operatingAirline' => [
+                        'code' => $legOperatingCarrierCode,
+                    ],
+                    'class' => [
+                        'code' => '',
+                        'type' => '',
+                    ],
                 ];
             }
 
@@ -384,10 +431,10 @@ class FlightOptions
                     'time' => $itineraryArrivalDateTime->format($outputTimeFormat),
                 ],
                 'duration' => [
-                    'hours' => $itineraryTotalDuration->format('H'),
-                    'minutes' => $itineraryTotalDuration->format('i'),
+                    'hours' => intval($itineraryTotalDuration->format('H')),
+                    'minutes' => intval($itineraryTotalDuration->format('i')),
                 ],
-                'AirItineraryLegs' => $itineraryLegs,
+                'segments' => $itineraryLegs,
             ];
         }
 
