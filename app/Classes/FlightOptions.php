@@ -326,7 +326,7 @@ class FlightOptions
             $itineraryArrivalDateTime = \DateTime::CreateFromFormat($sourceDateTimeFormat, $itineraryArrivalDateTimeString);
             $itineraryArrivalAirportLocationCode = trim(strval($airItineraryElement->ArrivalAirportLocationCode));
             $itineraryDepartureAirportLocationCode = trim(strval($airItineraryElement->DepartureAirportLocationCode));
-            $itineraryTotalDuration = trim(strval($airItineraryElement->TotalDuration));
+            $itineraryTotalDuration = \DateTime::CreateFromFormat('H:i', trim(strval($airItineraryElement->TotalDuration)));
 
             // Get itinerary legs list
             $itineraryLegsList = $airItineraryElement->AirItineraryLegs->AirItineraryLeg;
@@ -376,9 +376,17 @@ class FlightOptions
                     'date' => $itineraryDepartureDateTime->format($outputDateFormat),
                     'time' => $itineraryDepartureDateTime->format($outputTimeFormat),
                 ],
-                'ArrivalDateTime' => $itineraryArrivalDateTime,
-                'ArrivalAirportLocationCode' => $itineraryArrivalAirportLocationCode,
-                'TotalDuration' => $itineraryTotalDuration,
+                'arrival' => [
+                    'airport' => [
+                        'code' => $itineraryArrivalAirportLocationCode,
+                    ],
+                    'date' => $itineraryArrivalDateTime->format($outputDateFormat),
+                    'time' => $itineraryArrivalDateTime->format($outputTimeFormat),
+                ],
+                'duration' => [
+                    'hours' => $itineraryTotalDuration->format('H'),
+                    'minutes' => $itineraryTotalDuration->format('i'),
+                ],
                 'AirItineraryLegs' => $itineraryLegs,
             ];
         }
