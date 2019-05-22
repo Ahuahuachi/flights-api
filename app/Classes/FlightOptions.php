@@ -315,6 +315,8 @@ class FlightOptions
 
         // DateTime format strings
         $sourceDateTimeFormat = 'd/m/Y H:i';
+        $outputDateFormat = 'Y-m-d';
+        $outputTimeFormat = 'H:i';
 
         // Build array of itineraries
         foreach ($airItineraryList as $airItineraryElement) {
@@ -371,9 +373,9 @@ class FlightOptions
                     'airport' => [
                         'code' => $itineraryDepartureAirportLocationCode,
                     ],
-
+                    'date' => $itineraryDepartureDateTime->format($outputDateFormat),
+                    'time' => $itineraryDepartureDateTime->format($outputTimeFormat),
                 ],
-                'DepartureDateTime' => $itineraryDepartureDateTime,
                 'ArrivalDateTime' => $itineraryArrivalDateTime,
                 'ArrivalAirportLocationCode' => $itineraryArrivalAirportLocationCode,
                 'TotalDuration' => $itineraryTotalDuration,
