@@ -310,6 +310,17 @@ class FlightOptions
 
     public static function getFlightOptionsSoap(\SimpleXMLElement $soapXml)
     {
+        // helper function in case php < 7.3
+        if (!function_exists('array_key_first')) {
+            function array_key_first(array $arr)
+            {
+                foreach ($arr as $key => $unused) {
+                    return $key;
+                }
+                return NULL;
+            }
+        }
+
         // Get list of pricing groups, itineraries from xml
         $airItineraryList = $soapXml->AirAvailSearchResponse->AirAvailSearchResult->AirAvail->AirItineraries->AirItinerary;
 
@@ -358,7 +369,7 @@ class FlightOptions
                 ];
 
                 // Add scale segment
-                if (array_key_exists(0, $itineraryLegs)) {
+                if (!(empty($itineraryLegs))) {
                     $changeTerminal = (end($itineraryLegs)['arrival']['airport']['terminal'] != $legDepartureAirportTerminal) ? true : false;
                     $scaleDuration = $legPreviousArrivalDateTime->diff($legDepartureDateTime);
 
@@ -376,7 +387,7 @@ class FlightOptions
                 $legArrivalIsNightly = self::isNightly($legArrivalDateTime);
                 $legPreviousArrivalDateTime = $legArrivalDateTime;
 
-                $itineraryLegs[$itineraryId] = [
+                $itineraryLegs[] = [
                     'type' => 'flight',
                     'departure' => [
                         'airport' => [
@@ -407,10 +418,7 @@ class FlightOptions
                     'operatingAirline' => [
                         'code' => $legOperatingCarrierCode,
                     ],
-                    'class' => [
-                        'code' => '',
-                        'type' => '',
-                    ],
+                    'class' => [],
                 ];
             }
 
@@ -494,11 +502,13 @@ class FlightOptions
                         $cabinClass = trim(strval($pricedItineraryLegElement->CabinClass));
                         $cabinType = trim(strval($pricedItineraryLegElement->CabinType));
 
+
                         $pricedItineraryLegs = [
                             'CabinClass' => $cabinClass,
                             'CabinType' => $cabinType,
                         ];
                     }
+
 
                     $pricedItineraries[$pricedItineraryID] = [
                         'PricedItineraryLegs' => $pricedItineraryLegs,
