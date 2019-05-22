@@ -331,6 +331,7 @@ class FlightOptions
 
             // Build array of itinerary legs
             $itineraryLegs = [];
+            $itineraryAirlines = [];
             foreach ($itineraryLegsList as $itineraryLegElement) {
                 $legDepartureDateTimeString = trim(strVal($itineraryLegElement->DepartureDateTime));
                 $legDepartureDateTime = \DateTime::CreateFromFormat($sourceDateTimeFormat, $legDepartureDateTimeString);
@@ -345,6 +346,10 @@ class FlightOptions
                 $legMarketingCarrierCode = trim($itineraryLegElement->MarketingCarrierCode);
                 $legAircraftType = trim($itineraryLegElement->AircraftType);
 
+                $itineraryAirlines[] = [
+                    'code' => $legOperatingCarrierCode,
+                ];
+
                 $itineraryLegs[] = [
                     'DepartureDateTime' => $legDepartureDateTime,
                     'ArrivalDateTime' => $legArrivalDateTime,
@@ -353,14 +358,15 @@ class FlightOptions
                     'DepartureAirportLocationCode' => $legDepartureAirportLocationCode,
                     'DepartureAirportTerminal' => $legDepartureAirportTerminal,
                     'FlightNumber' => $legFlightNumber,
-                    'OperatingCarrierCode' => $legOperatingCarrierCode,
                     'MarketingCarrierCode' => $legMarketingCarrierCode,
                     'AircraftType' => $legAircraftType,
                 ];
             }
 
+            $itineraryAirlines = array_unique($itineraryAirlines, SORT_REGULAR);
 
             $airItineraries[] = [
+                'itineraryAirlines' => $itineraryAirlines,
                 'DepartureDateTime' => $itineraryDepartureDateTime,
                 'ArrivalDateTime' => $itineraryArrivalDateTime,
                 'ArrivalAirportLocationCode' => $itineraryArrivalAirportLocationCode,
@@ -441,6 +447,7 @@ class FlightOptions
         }
 
         $response = [
+            //debug
             'RawData' => [
                 'AirItineraries' => $airItineraries,
                 'AirPricingGroups' => $airPricingGroups,
