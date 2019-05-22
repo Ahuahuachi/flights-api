@@ -435,8 +435,10 @@ class FlightOptions
                     'time' => $itineraryArrivalDateTime->format($outputTimeFormat),
                 ],
                 'duration' => [
-                    'hours' => intval($itineraryTotalDuration->format('H')),
-                    'minutes' => intval($itineraryTotalDuration->format('i')),
+                    // 'hours' => intval($itineraryTotalDuration->format('H')),
+                    'hours' => 'N/A',
+                    // 'minutes' => intval($itineraryTotalDuration->format('i')),
+                    'minutes' => 'N/A',
                 ],
                 'segments' => $itineraryLegs,
                 'scale' => $scaleCount,
