@@ -376,7 +376,7 @@ class FlightOptions
                 $legArrivalIsNightly = self::isNightly($legArrivalDateTime);
                 $legPreviousArrivalDateTime = $legArrivalDateTime;
 
-                $itineraryLegs[] = [
+                $itineraryLegs[$itineraryId] = [
                     'type' => 'flight',
                     'departure' => [
                         'airport' => [
