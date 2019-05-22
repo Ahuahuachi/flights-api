@@ -346,6 +346,7 @@ class FlightOptions
                 $legMarketingCarrierCode = trim($itineraryLegElement->MarketingCarrierCode);
                 $legAircraftType = trim($itineraryLegElement->AircraftType);
 
+                // Get itinerary airlines
                 $itineraryAirlines[] = [
                     'code' => $legOperatingCarrierCode,
                 ];
@@ -364,11 +365,17 @@ class FlightOptions
             }
 
             $airItineraries[] = [
+                'journey' => '/*Id del trayecto */',
                 'airlines' => array_unique($itineraryAirlines, SORT_REGULAR),
+                'departure' => [
+                    'airport' => [
+                        'code' => $itineraryDepartureAirportLocationCode,
+                    ],
+
+                ],
                 'DepartureDateTime' => $itineraryDepartureDateTime,
                 'ArrivalDateTime' => $itineraryArrivalDateTime,
                 'ArrivalAirportLocationCode' => $itineraryArrivalAirportLocationCode,
-                'DepartureAirportLocationCode' => $itineraryDepartureAirportLocationCode,
                 'TotalDuration' => $itineraryTotalDuration,
                 'AirItineraryLegs' => $itineraryLegs,
             ];
