@@ -387,6 +387,7 @@ class FlightOptions
                 $legArrivalIsNightly = self::isNightly($legArrivalDateTime);
                 $legPreviousArrivalDateTime = $legArrivalDateTime;
 
+                // segments
                 $itineraryLegs[] = [
                     'type' => 'flight',
                     'departure' => [
@@ -407,8 +408,17 @@ class FlightOptions
                     ],
                     'isNightly' => self::isNightly($legDepartureDateTime),
                     'duration' => [
-                        'hours' => intval($legArrivalDateTime->diff($legDepartureDateTime)->h),
-                        'minutes' => intval($legArrivalDateTime->diff($legDepartureDateTime)->i),
+                        /**
+                         * Decieving information
+                         *
+                         * Can't get an acurate journey duration without time zone.
+                         * If there is a way to obtain time zone, use the following code:
+                         *
+                         *  'hours' => intval($legArrivalDateTime->diff($legDepartureDateTime)->h),
+                         *  'minutes' => intval($legArrivalDateTime->diff($legDepartureDateTime)->i),
+                         * */
+                        'hours' => 'N/A',
+                        'minutes' => 'N/A',
                     ],
                     'flightNumber' => $legFlightNumber,
                     'aircraft' => $legAircraftType,
@@ -427,30 +437,28 @@ class FlightOptions
             }));
 
             $airItineraries[$itineraryId] = [
-                'journey' => '/*Id del trayecto */',
-                'airlines' => array_unique($itineraryAirlines, SORT_REGULAR),
-                'departure' => [
+                'itineraryAirlines' => $itineraryAirlines,
+                'departureDetails' => [
                     'airport' => [
                         'code' => $itineraryDepartureAirportLocationCode,
                     ],
                     'date' => $itineraryDepartureDateTime->format($outputDateFormat),
                     'time' => $itineraryDepartureDateTime->format($outputTimeFormat),
                 ],
-                'arrival' => [
+                'arrivalDetails' => [
                     'airport' => [
                         'code' => $itineraryArrivalAirportLocationCode,
                     ],
                     'date' => $itineraryArrivalDateTime->format($outputDateFormat),
                     'time' => $itineraryArrivalDateTime->format($outputTimeFormat),
                 ],
-                'duration' => [
-                    // 'hours' => intval($itineraryTotalDuration->format('H')),
-                    'hours' => 'N/A',
-                    // 'minutes' => intval($itineraryTotalDuration->format('i')),
-                    'minutes' => 'N/A',
+                'journeyDuration' => [
+                    'hours' => intval($itineraryTotalDuration->format('H')),
+                    'minutes' => intval($itineraryTotalDuration->format('i')),
+
                 ],
-                'segments' => $itineraryLegs,
-                'scale' => $scaleCount,
+                'journeySegments' => $itineraryLegs,
+                'journeyScaleCount' => $scaleCount,
             ];
         }
 
@@ -459,6 +467,8 @@ class FlightOptions
 
         // Build array of pricing groups
         foreach ($airPricingGroupList as $airPricingGroupElement) {
+
+            // get total price
             $adultTicketAmount = floatval($airPricingGroupElement->AdultTicketAmount);
             $childrenTicketAmount = floatval($airPricingGroupElement->ChildrenTicketAmount);
             $infantTicketAmount = floatval($airPricingGroupElement->InfantTicketAmount);
@@ -482,8 +492,8 @@ class FlightOptions
             $pricingGroupOptionList = $airPricingGroupElement->AirPricingGroupOptions->AirPricingGroupOption;
 
             // Build array of pricing group options
-            $pricingGroupOptions = [];
             foreach ($pricingGroupOptionList as $pricingGroupOptionElement) {
+                // $pricingGroupOptionID = intval(trim($pricingGroupOptionElement->PricingGroupOptionID));
 
                 // Get list of air priced itineraries
                 $pricedItineryList = $pricingGroupOptionElement->AirPricedItineraries->AirPricedItinerary;
@@ -491,47 +501,61 @@ class FlightOptions
                 // Build array of air priced itineraries
                 $pricedItineraries = [];
                 foreach ($pricedItineryList as $pricedItineraryElement) {
-                    $pricedItineraryID = trim(strval($pricedItineraryElement->ItineraryID));
 
-                    // Get list of air priced itinerary legs
+                    $journeyId = 1;
+
+                    // Get itinerary details
+                    $pricedItineraryId = trim($pricedItineraryElement->ItineraryID);
+                    $itineraryDetails = $airItineraries[$pricedItineraryId];
+
+                    // Get list of priced itinerary legs
                     $pricedItineraryLegsList = $pricedItineraryElement->AirPricedItineraryLegs->AirPricedItineraryLeg;
+                    $flightSegmentsArray = array_filter($itineraryDetails['journeySegments'], function ($segment) {
+                        return array_key_exists('class', $segment);
+                    });
+                    $flightSegmentsKeys = array_keys($flightSegmentsArray);
 
-                    // Build array of air priced itinerary legs
-                    $pricedItineraryLegs = [];
+                    // Get cabin class and cabin type
+                    $i = 0;
                     foreach ($pricedItineraryLegsList as $pricedItineraryLegElement) {
-                        $cabinClass = trim(strval($pricedItineraryLegElement->CabinClass));
-                        $cabinType = trim(strval($pricedItineraryLegElement->CabinType));
-
-
-                        $pricedItineraryLegs = [
-                            'CabinClass' => $cabinClass,
-                            'CabinType' => $cabinType,
+                        $pricedItineraryLegCabinClass = trim($pricedItineraryLegElement->CabinClass);
+                        $pricedItineraryLegCabinType = trim($pricedItineraryLegElement->CabinType);
+                        $itineraryDetails['journeySegments'][$flightSegmentsKeys[$i]]['class'] = [
+                            'code' => $pricedItineraryLegCabinClass,
+                            'type' => $pricedItineraryLegCabinType,
                         ];
+
+                        $i++;
                     }
 
-
-                    $pricedItineraries[$pricedItineraryID] = [
-                        'PricedItineraryLegs' => $pricedItineraryLegs,
+                    $pricedItineraries[] = [
+                        'journey' => $journeyId,
+                        'airlines' => array_unique($itineraryDetails['itineraryAirlines'], SORT_REGULAR),
+                        'departure' => $itineraryDetails['departureDetails'],
+                        'arrival' => $itineraryDetails['arrivalDetails'],
+                        'duration' => $itineraryDetails['journeyDuration'],
+                        'segments' => $itineraryDetails['journeySegments'],
+                        'scale' => $itineraryDetails['journeyScaleCount'],
                     ];
+
+                    $journeyId++;
                 }
 
                 $pricingGroupOptions[] = [
-                    'PricedItineraries' => $pricedItineraries,
+                    'journeys' => $pricedItineraries,
+                    'option' => [
+                        'price' => [
+                            'amount' => $totalPrice,
+                            'currency' => 'USD'
+                        ],
+                    ],
                 ];
             }
-
-            $airPricingGroups[] = [
-                'TotalPrice' => $totalPrice,
-                'PricingGroupOptions' => $pricingGroupOptions,
-            ];
         }
 
         $response = [
-            //debug
-            'RawData' => [
-                'AirItineraries' => $airItineraries,
-                'AirPricingGroups' => $airPricingGroups,
-            ]
+            'count' => count($pricingGroupOptions),
+            'flights' => $pricingGroupOptions,
         ];
 
         return $response;
