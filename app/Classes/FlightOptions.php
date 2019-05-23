@@ -123,6 +123,7 @@ class FlightOptions
 
             // Build journey array
             $journeys = [];
+            $journeyId = 1;
             foreach ($journeyList as $journeyElement) {
                 $travelTime = $journeyElement->attributes()['TravelTime'];
 
@@ -272,7 +273,7 @@ class FlightOptions
                 $airlines = array_unique($airlines, SORT_REGULAR);
 
                 $journeys[] = [
-                    'journey' => '/* Id del trayecto */',
+                    'journey' => $journeyId,
                     'airlines' => $airlines,
                     'departure' => $departure,
                     'arrival' => $arrival,
@@ -280,6 +281,8 @@ class FlightOptions
                     'segments' => $journeyAirSegments,
                     'scale' => $scaleNumber,
                 ];
+
+                $journeyId++;
             }
 
             //Build price response
@@ -493,15 +496,16 @@ class FlightOptions
 
             // Build array of pricing group options
             foreach ($pricingGroupOptionList as $pricingGroupOptionElement) {
+                // $pricingGroupOptionID = intval(trim($pricingGroupOptionElement->PricingGroupOptionID));
 
                 // Get list of air priced itineraries
                 $pricedItineryList = $pricingGroupOptionElement->AirPricedItineraries->AirPricedItinerary;
 
                 // Build array of air priced itineraries
                 $pricedItineraries = [];
+                $journeyId = 1;
                 foreach ($pricedItineryList as $pricedItineraryElement) {
 
-                    $journeyId = 1;
 
                     // Get itinerary details
                     $pricedItineraryId = trim($pricedItineraryElement->ItineraryID);
