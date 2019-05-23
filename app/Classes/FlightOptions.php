@@ -493,6 +493,7 @@ class FlightOptions
 
             // Build array of pricing group options
             foreach ($pricingGroupOptionList as $pricingGroupOptionElement) {
+                // $pricingGroupOptionID = intval(trim($pricingGroupOptionElement->PricingGroupOptionID));
 
                 // Get list of air priced itineraries
                 $pricedItineryList = $pricingGroupOptionElement->AirPricedItineraries->AirPricedItinerary;
